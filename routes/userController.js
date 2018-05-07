@@ -1,53 +1,58 @@
 "use strict";
 
 const router = require('express').Router();
-const { checkSchema, validationResult } = require('express-validator/check');
+const User = require('../models/user');
+const { validationResult } = require('express-validator/check');
 const validation = require('../validation');
-const db = require('../db');
-
-const data = db.getUsers();
-
-router.param('id', (req, res, next, id) => {
-  if (!data[parseInt(id, 10)]) {
-    res.sendStatus(404);
-    return
-  }
-  next();
-});
-
-router.use((req, res, next) => {
-  console.log('UserController');
-  next();
-});
 
 router.get('/', (req, res, next) => {
-  res.send(data);
+  User.find()
+    .then(data => {
+      res.send(data)
+    })
+    .catch(next);
 });
 
 router.get('/:id', (req, res, next) => {
-  console.log(req.params.id);
-  res.send(data[req.params.id]);
+  User.findById(req.params.id)
+    .then(data => {
+      res.send(data)
+    })
+    .catch(next);
 });
 
 router.post('/', validation.user, (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ errors: errors.mapped() });
-  }
+  }  
 
-  const length = data.push(req.body);
-  res.send({ id: length - 1 });
+  const user = new User(req.body);
+  user.save()
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(next)
 });
 
 router.put('/:id', (req, res, next) => {
-  const { id } = req.params;
-  data[id] = Object.assign(data[id], req.body);
-  res.send(data[id]);
+  User.findById(req.params.id)
+    .then(user => {
+      user = Object.assign(user, req.body);
+      return user.save()
+    })
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(next);
 });
 
 router.delete('/:id', (req, res, next) => {
-  const [deleted] = data.splice(req.params.id, 1);
-  res.send(deleted);
+  User.findByIdAndRemove(req.params.id, req.body)
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(next);
 });
 
 module.exports = router;

@@ -1,46 +1,58 @@
 "use strict";
 
 const router = require('express').Router();
-const db = require('../db');
-
-const data = db.getTasks();
-
-router.param('id', (req, res, next, id) => {
-  if (!data[parseInt(id, 10)]) {
-    res.sendStatus(404);
-    return
-  }
-  next();
-});
-
-router.use((req, res, next) => {
-  console.log('TaskController');
-  next();
-});
+const Task = require('../models/task');
+const { validationResult } = require('express-validator/check');
+const validation = require('../validation');
 
 router.get('/', (req, res, next) => {
-  res.send(data);
+  Task.find()
+    .then(data => {
+      res.send(data)
+    })
+    .catch(next);
 });
 
 router.get('/:id', (req, res, next) => {
-  console.log(req.params.id);
-  res.send(data[req.params.id]);
+  Task.findById(req.params.id)
+    .then(data => {
+      res.send(data)
+    })
+    .catch(next);
 });
 
-router.post('/', (req, res, next) => {
-  const length = data.push(req.body);
-  res.send({id: length - 1});
+router.post('/', validation.task, (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.mapped() });
+  }  
+
+  const task = new Task(req.body);
+  task.save()
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(next)
 });
 
 router.put('/:id', (req, res, next) => {
-  const {id} = req.params;
-  data[id] = Object.assign(data[id], req.body);
-  res.send(data[id]);
+  Task.findById(req.params.id)
+    .then(task => {
+      task = Object.assign(task, req.body);
+      return task.save()
+    })
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(next);
 });
 
 router.delete('/:id', (req, res, next) => {
-  const [deleted] = data.splice(req.params.id, 1);
-  res.send(deleted);
+  Task.findByIdAndRemove(req.params.id, req.body)
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(next);
 });
 
 module.exports = router;

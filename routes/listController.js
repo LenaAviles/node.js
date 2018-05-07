@@ -1,46 +1,58 @@
 "use strict";
 
 const router = require('express').Router();
-const db = require('../db');
+const List = require('../models/list');
+const { validationResult } = require('express-validator/check');
+const validation = require('../validation');
 
-const data = db.getLists();
-
-router.param('id', (req, res, next, id) => {
-  if (!data[parseInt(id, 10)]) {
-    res.sendStatus(404);
-    return
-  }
-  next();
-});
-
-router.use((req, res, next) => {
-  console.log('ListController');
-  next();
-});
-
-router.get('/', (req, res, next) => {
-  res.send(data);
+router.get('/', (req, res, next) => {  
+  List.schema.methods.updateData((err, data) => {
+    if (err) {
+      return handleError(err);      
+    } else res.send(data);
+  });
 });
 
 router.get('/:id', (req, res, next) => {
-  console.log(req.params.id);
-  res.send(data[req.params.id]);
+  List.findById(req.params.id)
+    .then(data => {
+      res.send(data)
+    })
+    .catch(next);
 });
 
-router.post('/', (req, res, next) => {
-  const length = data.push(req.body);
-  res.send({id: length - 1});
+router.post('/', validation.list, (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.mapped() });
+  }  
+
+  const list = new List(req.body);
+  list.save()
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(next)
 });
 
 router.put('/:id', (req, res, next) => {
-  const {id} = req.params;
-  data[id] = Object.assign(data[id], req.body);
-  res.send(data[id]);
+  List.findById(req.params.id)
+    .then(list => {
+      list = Object.assign(list, req.body);
+      return list.save()
+    })
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(next);
 });
 
 router.delete('/:id', (req, res, next) => {
-  const [deleted] = data.splice(req.params.id, 1);
-  res.send(deleted);
+  List.findByIdAndRemove(req.params.id, req.body)
+    .then((data) => {
+      res.send(data);
+    })
+    .catch(next);
 });
 
 module.exports = router;
