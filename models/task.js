@@ -18,9 +18,7 @@ const mongoose = require('mongoose'),
 TaskSchema.set('toObject', { versionKey: false });
 TaskSchema.set('toJSON', { versionKey: false });
 
-TaskSchema.methods.updateData = function () {
-    // this.id === this._id
-    // this -- instance of User
+TaskSchema.methods.updateData = function () {    
     Task.find().populate('tasks').exec()
   };
 

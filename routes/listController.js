@@ -7,9 +7,8 @@ const validation = require('../validation');
 
 router.get('/', (req, res, next) => {  
   List.schema.methods.updateData((err, data) => {
-    if (err) {
-      return handleError(err);      
-    } else res.send(data);
+    if (err) next(err);      
+    else res.send(data);
   });
 });
 

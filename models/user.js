@@ -26,7 +26,14 @@ const mongoose = require('mongoose'),
     }
   });
 
-UserSchema.set('toObject', { versionKey: false });
+UserSchema.set('toObject', {
+  transform: function (doc, ret, options) {
+      ret.id = ret._id;
+      delete ret._id;
+      delete ret.__v;
+      delete ret.password;
+  }
+  });
 UserSchema.set('toJSON', { versionKey: false });
 
 UserSchema.pre('save', function (next) {
@@ -40,6 +47,10 @@ UserSchema.pre('save', function (next) {
     });
   }
 });
+
+UserSchema.methods.greeting = function () {
+  return {"Hello":this.name}
+};
 
 const User = mongoose.model('user', UserSchema);
 module.exports = User;
