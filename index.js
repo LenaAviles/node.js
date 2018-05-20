@@ -10,8 +10,12 @@ const {
     listController,
     taskController
 } = require('./routes');
-// require('./models/user');
+const User = require('./models/user');
 const gql = require('./graphql');
+const WebSocket = require('ws');
+const http = require('http');
+const bus = require('./eventbus');
+const URL = require('url');
 
 const express = require('express');
 const app = express();
@@ -27,6 +31,53 @@ app.use(expressSession({
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+const server = http.createServer(app);
+const wss = new WebSocket.Server({server, path:'/ws', port : 3000});
+
+CLIENTS=[];
+
+wss.on('connection', (ws, req) => {  
+  const url = URL.parse(req.url);
+  if(url.search !== null) {
+    const pattern = url.search.split('=')[1];
+    // console.log('Connected!', pattern);
+
+    bus.on(pattern, (data) => {
+      ws.send(JSON.stringify(data));
+    });
+  }
+  
+  bus.on('task.created', (data) => {
+
+    wss.clients.forEach(client => {      
+      if (client.readyState === WebSocket.OPEN && String(client.id) === String(data.assignees[0])) {
+        client.send(JSON.stringify(data))
+      }
+    });    
+  });
+
+  bus.on('user.logined', (data) => {
+    ws.id = data.id;
+  });
+
+  ws.on('message', (data) => {
+    ws.send(data);
+  });
+
+  ws.send('hello');
+  
+});
+
+app.use((req, res, next) => {
+  res.set({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST',
+    'Access-Control-Allow-Headers': 'x-requested-with,content-type'
+  });
+  next();
+});
+
 require('./fixtures/passport');
 
 gql(app);
@@ -41,6 +92,7 @@ app.post('/auth/login',
   (req, res, next) => {    
     if (req.isAuthenticated()) {
       res.send(req.user);
+      bus.emit('user.logined', req.user);
     } else {
       res.sendStatus(401);
     }

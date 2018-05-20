@@ -16,7 +16,7 @@ const listTypeDefs = `
   input ListInput {
     name: String!,
     boardId: String!,
-    tasks: [Task]
+    tasks: [String]
   }
   
   type List {

@@ -14,8 +14,7 @@ const mongoose = require('mongoose'),
 ListSchema.set('toObject', { versionKey: false });
 ListSchema.set('toJSON', { versionKey: false });
 
-ListSchema.methods.updateData = function (cb) {   
-  throw new Error('error'); 
+ListSchema.methods.updateData = function (cb) {    
     List.find().populate('tasks').populate('boardId').exec(cb)
 };
 

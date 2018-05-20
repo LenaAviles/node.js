@@ -4,6 +4,7 @@ const router = require('express').Router();
 const Task = require('../models/task');
 const { validationResult } = require('express-validator/check');
 const validation = require('../validation');
+const bus = require('./../eventbus');
 
 router.get('/', (req, res, next) => {
   Task.find()
@@ -31,6 +32,7 @@ router.post('/', validation.task, (req, res, next) => {
   task.save()
     .then((data) => {
       res.send(data);
+      bus.emit('task.created', data);
     })
     .catch(next)
 });
